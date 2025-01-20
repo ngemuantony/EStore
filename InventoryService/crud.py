@@ -65,7 +65,7 @@ async def create_new_product(product: ProductRequest, user_id: int) -> dict:
         created_by=user_id,
         category_id=product.category_id,
         description=product.description,
-        tags=valid_tags,
+        tag_ids=",".join(valid_tags),
         image_url=product.image_url,
         min_stock_level=product.min_stock_level,
         discount_percentage=product.discount_percentage
@@ -161,7 +161,7 @@ async def search_products(params: ProductSearchParams) -> List[dict]:
             continue
             
         if params.tags:
-            if not all(tag in product['tags'] for tag in params.tags):
+            if not all(tag in product['tags'].split(",") for tag in params.tags):
                 continue
                 
         if params.in_stock is not None:

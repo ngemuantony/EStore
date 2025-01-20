@@ -2,45 +2,45 @@ from redis_om import HashModel, Field
 from database import redis
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 
 class Category(HashModel):
-    name: str
+    name: str = Field(index=True)
     description: Optional[str] = None
-    parent_id: Optional[str] = None
     
     class Meta:
         database = redis
 
 class Tag(HashModel):
-    name: str
+    name: str = Field(index=True)
     
     class Meta:
         database = redis
 
 class ProductAnalytics(HashModel):
     product_id: str
-    views: int = 0
+    views: int = Field(default=0)
     last_viewed: Optional[datetime] = None
-    stock_updates: int = 0
+    stock_updates: int = Field(default=0)
     last_stock_update: Optional[datetime] = None
     
     class Meta:
         database = redis
 
 class Product(HashModel):
-    name: str
-    price: float
-    quantity: int
+    name: str = Field(index=True)
+    price: float = Field(index=True)
+    quantity: int = Field(index=True)
     created_by: int
-    category_id: Optional[str] = None
+    category_id: Optional[str] = Field(index=True)
     description: Optional[str] = None
-    tags: List[str] = []
+    tag_ids: str = Field(index=True, default="")  # Store as comma-separated string
     image_url: Optional[str] = None
     min_stock_level: Optional[int] = None
-    discount_percentage: Optional[float] = None
+    discount_percentage: Optional[float] = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
-
+    
     class Meta:
         database = redis
 
@@ -56,11 +56,12 @@ def format_product(pk: str):
         
     # Get tags
     tags = []
-    for tag_id in product.tags:
-        tag = Tag.get(tag_id)
-        if tag:
-            tags.append(tag.name)
-            
+    for tag_id in product.tag_ids.split(","):
+        if tag_id:
+            tag = Tag.get(tag_id)
+            if tag:
+                tags.append(tag.name)
+                
     # Get analytics
     analytics = None
     try:

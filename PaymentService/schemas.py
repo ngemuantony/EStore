@@ -3,8 +3,9 @@ from typing import Optional, Dict, List
 from datetime import datetime
 
 class OrderRequest(BaseModel):
-    id: str  # This will be used as product_id
+    product_id: str
     quantity: int
+    price: float
     payment_method_id: Optional[str] = None
 
 class PaymentMethodBase(BaseModel):
@@ -18,10 +19,9 @@ class PaymentMethodResponse(PaymentMethodBase):
     id: str
     user_id: int
     created_at: datetime
-
-class OrderNote(BaseModel):
-    timestamp: datetime
-    content: str
+    last_used: Optional[datetime]
+    is_default: bool
+    is_active: bool
 
 class OrderResponse(BaseModel):
     id: str
@@ -33,12 +33,12 @@ class OrderResponse(BaseModel):
     total: float
     status: str
     payment_method_id: Optional[str]
-    created_at: datetime
-    updated_at: Optional[datetime]
-    notes: List[str]
-    refund_amount: Optional[float]
     payment_status: str
     payment_error: Optional[str]
+    notes: List[str]
+    refund_amount: Optional[float]
+    created_at: datetime
+    updated_at: Optional[datetime]
 
 class OrderStatusUpdate(BaseModel):
     status: str = Field(..., description="New status for the order")
@@ -46,4 +46,4 @@ class OrderStatusUpdate(BaseModel):
 
 class RefundRequest(BaseModel):
     amount: Optional[float] = None
-    reason: str
+    reason: str = Field(default="", description="Reason for the refund")

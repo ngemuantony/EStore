@@ -141,7 +141,7 @@ async def get_order(
             detail="Invalid or expired token"
         )
     
-    order = crud.get_order(order_id)
+    order = await crud.get_order(order_id)
     if not order:
         raise HTTPException(
             status_code=404,
@@ -177,7 +177,7 @@ async def update_order_status(
             detail="Only administrators can update order status"
         )
     
-    return crud.update_order_status(
+    return await crud.update_order_status(
         order_id=order_id,
         status=status_update.status,
         note=status_update.note
@@ -195,7 +195,7 @@ async def process_payment(
             detail="Invalid or expired token"
         )
     
-    order = crud.get_order(order_id)
+    order = await crud.get_order(order_id)
     if not order:
         raise HTTPException(
             status_code=404,
@@ -208,7 +208,7 @@ async def process_payment(
             detail="Not authorized to process payment for this order"
         )
     
-    return crud.process_payment(order_id)
+    return await crud.process_payment(order_id)
 
 @app.post("/orders/{order_id}/refund", response_model=OrderResponse)
 async def refund_order(
@@ -231,7 +231,7 @@ async def refund_order(
             detail="Only administrators can process refunds"
         )
     
-    return crud.process_refund(
+    return await crud.process_refund(
         order_id=order_id,
         amount=refund_request.amount,
         reason=refund_request.reason

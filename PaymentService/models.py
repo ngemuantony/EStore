@@ -1,80 +1,89 @@
-from typing import Dict, Optional
 from datetime import datetime
-import uuid
+from typing import Optional, List, Dict
+from pydantic import BaseModel
+from redis_om import HashModel, Field
+import json
+from database import redis
 
-class PaymentMethod:
-    def __init__(self, id: str, user_id: int, type: str, details: Dict):
-        self.id = id
-        self.user_id = user_id
-        self.type = type  # 'card', 'paypal', etc.
-        self.details = details
-        self.created_at = datetime.utcnow()
+class PaymentMethod(HashModel):
+    user_id: int = Field(index=True)
+    type: str = Field(index=True)  # e.g., 'card', 'paypal'
+    details_json: str = Field(default="{}")  # Store payment details as JSON string
+    created_at: datetime = Field(default_factory=datetime.now)
+    last_used: Optional[datetime] = None
+    is_default: bool = Field(default=False)
+    is_active: bool = Field(default=True)
 
-class Order:
-    def __init__(
-        self,
-        product_id: str,
-        user_id: int,
-        quantity: int,
-        price: float,
-        fee: float,
-        payment_method_id: Optional[str] = None
-    ):
-        self.id = str(uuid.uuid4())
-        self.product_id = product_id
-        self.user_id = user_id
-        self.quantity = quantity
-        self.price = price
-        self.fee = fee
-        self.total = price + fee
-        self.status = 'pending'  # pending, paid, cancelled, refunded
-        self.payment_method_id = payment_method_id
-        self.created_at = datetime.utcnow()
-        self.updated_at = None
-        self.notes: List[str] = []
-        self.refund_amount: Optional[float] = None
-        self.payment_status: str = 'pending'  # pending, processing, completed, failed
-        self.payment_error: Optional[str] = None
+    class Meta:
+        database = redis
 
-    def to_dict(self) -> Dict:
-        return {
-            'id': self.id,
-            'product_id': self.product_id,
-            'user_id': self.user_id,
-            'quantity': self.quantity,
-            'price': self.price,
-            'fee': self.fee,
-            'total': self.total,
-            'status': self.status,
-            'payment_method_id': self.payment_method_id,
-            'created_at': self.created_at.isoformat(),
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'notes': self.notes,
-            'refund_amount': self.refund_amount,
-            'payment_status': self.payment_status,
-            'payment_error': self.payment_error
-        }
+    @property
+    def details(self) -> Dict:
+        """Get payment details as dictionary"""
+        try:
+            return json.loads(self.details_json)
+        except json.JSONDecodeError:
+            return {}
+
+    def set_details(self, details: Dict):
+        """Set payment details from dictionary"""
+        self.details_json = json.dumps(details)
+        self.save()
+
+class Order(HashModel):
+    product_id: str = Field(index=True)
+    user_id: int = Field(index=True)
+    quantity: int = Field(index=True)
+    price: float = Field(index=True)
+    fee: float = Field(index=True)
+    total: float = Field(index=True)
+    status: str = Field(index=True, default="pending")  # pending, paid, cancelled, refunded
+    payment_method_id: Optional[str] = Field(index=True)
+    payment_status: str = Field(index=True, default="pending")  # pending, processing, completed, failed
+    payment_error: Optional[str] = None
+    notes_json: str = Field(default="[]")  # Store notes as JSON string
+    refund_amount: Optional[float] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: Optional[datetime] = None
+
+    class Meta:
+        database = redis
+
+    @property
+    def notes(self) -> List[str]:
+        """Get notes as list"""
+        try:
+            return json.loads(self.notes_json)
+        except json.JSONDecodeError:
+            return []
 
     def add_note(self, note: str):
-        self.notes.append(f"{datetime.utcnow().isoformat()}: {note}")
-        self.updated_at = datetime.utcnow()
+        """Add a note to the order with timestamp"""
+        timestamp = datetime.now().isoformat()
+        notes = self.notes
+        notes.append(f"[{timestamp}] {note}")
+        self.notes_json = json.dumps(notes)
+        self.save()
 
     def update_status(self, status: str, note: Optional[str] = None):
+        """Update order status with optional note"""
         self.status = status
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
         if note:
             self.add_note(note)
+        self.save()
 
     def process_refund(self, amount: Optional[float] = None):
-        if amount is None:
-            amount = self.total
-        if amount > self.total:
+        """Process a refund for the order"""
+        if self.status != 'paid':
+            raise ValueError("Can only refund paid orders")
+            
+        refund_amount = amount if amount is not None else self.total
+        if refund_amount > self.total:
             raise ValueError("Refund amount cannot exceed order total")
-        self.refund_amount = amount
+            
+        self.refund_amount = refund_amount
         self.status = 'refunded'
-        self.updated_at = datetime.utcnow()
-        self.add_note(f"Refunded amount: ${amount:.2f}")
-
-# In-memory storage
-payment_methods: Dict[str, PaymentMethod] = {}
-orders: Dict[str, Order] = {}
+        self.updated_at = datetime.now()
+        self.add_note(f"Refund processed: ${refund_amount:.2f}")
+        self.save()
