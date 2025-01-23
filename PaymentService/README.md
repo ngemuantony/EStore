@@ -1,106 +1,81 @@
 # Payment Service
 
-A microservice for handling payment methods and orders in the EStore application.
+A microservice for handling payment processing in the E-Store platform.
 
 ## Features
+- Payment processing
+- Transaction history
+- Refund management
+- Payment status tracking
 
-- Payment Method Management (CRUD operations)
-- Order Processing
-- PostgreSQL Database Integration
-- JWT Authentication
+## Database
+- Uses PostgreSQL for persistent storage
+- Database name: `paymentdb`
+- Connection managed through SQLAlchemy with retry mechanism
 
-## Prerequisites
+## Configuration
 
-- Python 3.8+
-- PostgreSQL
-- Virtual Environment (recommended)
-
-## Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
+### Environment Variables
+Create a `.env` file in the PaymentService directory with:
 
 ```env
-DATABASE_URL=postgresql://postgres:your_password@localhost:5432/estore_payments
-SECRET_KEY=your_secret_key
-ALGORITHM=HS256
+DATABASE_URL=postgresql://postgres:postgres@db:5432/paymentdb
+MAX_DB_RETRIES=10
+DB_RETRY_INTERVAL=5
 ```
 
-## Installation
-
-1. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Create the database:
-```sql
-CREATE DATABASE estore_payments;
-```
-
-4. Start the server:
-```bash
-uvicorn main:app --reload --port 8000
-```
+### Database Connection
+The service uses the shared database connection handler from `utils/database.py` which provides:
+- Automatic connection retries
+- Connection pooling
+- Error logging
+- Health checks
 
 ## API Endpoints
 
-### Payment Methods
+### Payment Processing
+- `POST /payments/process`: Process a new payment
+- `GET /payments/{payment_id}`: Get payment details
+- `POST /payments/{payment_id}/refund`: Process a refund
 
-- `POST /payment-methods`: Create a new payment method
-- `GET /payment-methods`: List all payment methods for a user
-- `GET /payment-methods/{id}`: Get a specific payment method
-- `DELETE /payment-methods/{id}`: Delete a payment method
+### Transaction History
+- `GET /transactions`: List all transactions
+- `GET /transactions/{transaction_id}`: Get transaction details
 
-### Orders
+## Development
 
-- `POST /orders`: Create a new order
-- `GET /orders`: List all orders for a user
-- `GET /orders/{id}`: Get a specific order
-- `PUT /orders/{id}/status`: Update order status
-
-## Database Schema
-
-### Payment Methods
-```sql
-CREATE TABLE payment_methods (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR NOT NULL,
-    payment_type VARCHAR NOT NULL,
-    details JSONB NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE
-);
+### Running Locally
+1. Ensure PostgreSQL is running
+2. Set up environment variables
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+4. Run the service:
+```bash
+uvicorn main:app --reload --port 8001
 ```
 
-### Orders
-```sql
-CREATE TABLE orders (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR NOT NULL,
-    product_id VARCHAR NOT NULL,
-    quantity INTEGER NOT NULL,
-    total_amount INTEGER NOT NULL,
-    status VARCHAR NOT NULL DEFAULT 'pending',
-    payment_method_id INTEGER REFERENCES payment_methods(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE
-);
+### Docker
+The service is containerized using Docker:
+```bash
+docker build -t payment-service .
+docker run -p 8001:8001 payment-service
 ```
 
-## Error Handling
+## Testing
+Run tests with:
+```bash
+pytest
+```
 
-The service implements standard HTTP status codes:
-- 200: Success
-- 400: Bad Request
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 500: Internal Server Error
+## API Documentation
+Access the Swagger documentation at:
+http://localhost:8001/docs
+
+## Dependencies
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Pydantic
+- uvicorn

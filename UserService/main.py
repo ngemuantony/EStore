@@ -3,10 +3,18 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import crud, models, schemas, auth
-from database import engine, get_db
+from database import SessionLocal, engine, get_db
 from datetime import timedelta
 import requests
+import os
+import sys
 
+# Add parent directory to path to import utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.database import wait_for_db
+
+# Wait for database to be ready before creating tables
+engine = wait_for_db(os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/userdb"))
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()

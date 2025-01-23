@@ -1,0 +1,252 @@
+{
+	"info": {
+		"_postman_id": "estore-api-collection",
+		"name": "E-Store API",
+		"description": "Collection for testing E-Store microservices",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "User Service",
+			"item": [
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"username\": \"testuser\",\n    \"password\": \"strongpassword123\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8002/users/",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8002",
+							"path": ["users", ""]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "user@example.com"
+								},
+								{
+									"key": "password",
+									"value": "strongpassword123"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8002/token",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8002",
+							"path": ["token"]
+						}
+					}
+				},
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8002/users/me/",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8002",
+							"path": ["users", "me", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Inventory Service",
+			"item": [
+				{
+					"name": "List Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8001/products",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8001",
+							"path": ["products"],
+							"query": [
+								{
+									"key": "name",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "category_id",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "min_price",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "max_price",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "tags",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "in_stock",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Categories",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8001/categories",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8001",
+							"path": ["categories"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payment Service",
+			"item": [
+				{
+					"name": "Create Payment Method",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"card\",\n    \"details\": {\n        \"card_number\": \"4242424242424242\",\n        \"expiry_month\": 12,\n        \"expiry_year\": 2024,\n        \"cvc\": \"123\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/payment-methods",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8000",
+							"path": ["payment-methods"]
+						}
+					}
+				},
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product_id\": \"product_id_here\",\n    \"quantity\": 1,\n    \"price\": 99.99,\n    \"payment_method_id\": \"payment_method_id_here\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/orders",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8000",
+							"path": ["orders"]
+						}
+					}
+				},
+				{
+					"name": "Process Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/orders/{{order_id}}/pay",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8000",
+							"path": ["orders", "{{order_id}}", "pay"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "token",
+			"value": "your_access_token_here"
+		},
+		{
+			"key": "order_id",
+			"value": "your_order_id_here"
+		}
+	]
+}
