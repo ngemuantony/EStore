@@ -1,238 +1,147 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer
-import auth
-import crud
-from schemas import (
-    OrderRequest,
-    OrderResponse,
-    OrderStatusUpdate,
-    PaymentMethodCreate,
-    PaymentMethodResponse,
-    RefundRequest
-)
+from sqlalchemy.orm import Session
 from typing import List
+import os
 
-# Constants
-USER_SERVICE_URL = "http://localhost:8002"
+from database import get_db, Base, engine
+from schemas import (
+    PaymentMethodCreate, PaymentMethodResponse,
+    OrderCreate, OrderResponse,
+    OrderStatusUpdate, RefundRequest
+)
+import crud
 
-# FastAPI app initialization
-app = FastAPI()
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
-# OAuth2 scheme for token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{USER_SERVICE_URL}/token")
+app = FastAPI(
+    title="Payment Service",
+    description="""
+    A microservice for managing payment methods and processing orders in the EStore application.
+    
+    Features:
+    - Payment Method Management (CRUD operations)
+    - Order Processing
+    - PostgreSQL Database Integration
+    - JWT Authentication (coming soon)
+    """,
+    version="1.0.0"
+)
 
-# CORS middleware configuration
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Payment Method endpoints
-@app.post("/payment-methods", response_model=PaymentMethodResponse)
+@app.post("/payment-methods", response_model=PaymentMethodResponse,
+    summary="Create a new payment method",
+    description="Creates a new payment method for the authenticated user.")
 async def create_payment_method(
     payment_method: PaymentMethodCreate,
-    token: str = Depends(oauth2_scheme)
+    user_id: int = 1,  # TODO: Get from auth token
+    db: Session = Depends(get_db)
 ):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
+    """Create a new payment method"""
     return crud.create_payment_method(
-        user_id=user["id"],
-        type=payment_method.type,
+        db=db,
+        user_id=user_id,
+        payment_type=payment_method.payment_type,
         details=payment_method.details
     )
 
-@app.get("/payment-methods", response_model=List[PaymentMethodResponse])
-async def get_payment_methods(token: str = Depends(oauth2_scheme)):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    return crud.get_user_payment_methods(user["id"])
-
-@app.delete("/payment-methods/{payment_method_id}")
-async def delete_payment_method(
-    payment_method_id: str,
-    token: str = Depends(oauth2_scheme)
+@app.get("/payment-methods", response_model=List[PaymentMethodResponse],
+    summary="List user's payment methods",
+    description="Retrieves all active payment methods for the authenticated user.")
+async def get_payment_methods(
+    user_id: int = 1,  # TODO: Get from auth token
+    db: Session = Depends(get_db)
 ):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    payment_method = crud.get_payment_method(payment_method_id)
+    """Get all payment methods for a user"""
+    return crud.get_user_payment_methods(db=db, user_id=user_id)
+
+@app.get("/payment-methods/{payment_method_id}", response_model=PaymentMethodResponse,
+    summary="Get a specific payment method",
+    description="Retrieves details of a specific payment method by its ID.")
+async def get_payment_method(
+    payment_method_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific payment method"""
+    payment_method = crud.get_payment_method(db=db, payment_method_id=payment_method_id)
     if not payment_method:
-        raise HTTPException(
-            status_code=404,
-            detail="Payment method not found"
-        )
-    
-    if payment_method.user_id != user["id"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to delete this payment method"
-        )
-    
-    crud.delete_payment_method(payment_method_id)
-    return {"message": "Payment method deleted successfully"}
+        raise HTTPException(status_code=404, detail="Payment method not found")
+    return payment_method
+
+@app.delete("/payment-methods/{payment_method_id}", response_model=PaymentMethodResponse,
+    summary="Delete a payment method",
+    description="Soft deletes a payment method by setting is_active to false.")
+async def delete_payment_method(
+    payment_method_id: int,
+    user_id: int = 1,  # TODO: Get from auth token
+    db: Session = Depends(get_db)
+):
+    """Delete a payment method"""
+    return crud.delete_payment_method(db=db, payment_method_id=payment_method_id, user_id=user_id)
 
 # Order endpoints
-@app.post("/orders", response_model=OrderResponse)
+@app.post("/orders", response_model=OrderResponse,
+    summary="Create a new order",
+    description="Creates a new order with the specified product and payment method.")
 async def create_order(
-    order: OrderRequest,
-    token: str = Depends(oauth2_scheme)
+    order: OrderCreate,
+    user_id: int = 1,  # TODO: Get from auth token
+    db: Session = Depends(get_db)
 ):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    # Validate payment method if provided
-    if order.payment_method_id:
-        payment_method = crud.get_payment_method(order.payment_method_id)
-        if not payment_method:
-            raise HTTPException(
-                status_code=404,
-                detail="Payment method not found"
-            )
-        if payment_method.user_id != user["id"]:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to use this payment method"
-            )
-    
-    return await crud.create_order(order, user["id"], order.payment_method_id)
+    """Create a new order"""
+    return crud.create_order(
+        db=db,
+        user_id=user_id,
+        product_id=order.product_id,
+        quantity=order.quantity,
+        payment_method_id=order.payment_method_id
+    )
 
-@app.get("/orders", response_model=List[OrderResponse])
-async def get_orders(token: str = Depends(oauth2_scheme)):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    return await crud.get_user_orders(user["id"])
+@app.get("/orders", response_model=List[OrderResponse],
+    summary="List user's orders",
+    description="Retrieves all orders for the authenticated user.")
+async def get_orders(
+    user_id: int = 1,  # TODO: Get from auth token
+    db: Session = Depends(get_db)
+):
+    """Get all orders for a user"""
+    return crud.get_user_orders(db=db, user_id=user_id)
 
-@app.get("/orders/{order_id}", response_model=OrderResponse)
+@app.get("/orders/{order_id}", response_model=OrderResponse,
+    summary="Get a specific order",
+    description="Retrieves details of a specific order by its ID.")
 async def get_order(
-    order_id: str,
-    token: str = Depends(oauth2_scheme)
+    order_id: int,
+    db: Session = Depends(get_db)
 ):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    order = await crud.get_order(order_id)
+    """Get a specific order"""
+    order = crud.get_order(db=db, order_id=order_id)
     if not order:
-        raise HTTPException(
-            status_code=404,
-            detail="Order not found"
-        )
-    
-    if order.user_id != user["id"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to view this order"
-        )
-    
+        raise HTTPException(status_code=404, detail="Order not found")
     return order
 
-@app.patch("/orders/{order_id}/status", response_model=OrderResponse)
+@app.put("/orders/{order_id}/status", response_model=OrderResponse,
+    summary="Update order status",
+    description="Updates the status of an order (e.g., pending, paid, cancelled).")
 async def update_order_status(
-    order_id: str,
+    order_id: int,
     status_update: OrderStatusUpdate,
-    token: str = Depends(oauth2_scheme)
+    db: Session = Depends(get_db)
 ):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    # Only allow admin to update order status
-    is_admin = await auth.verify_admin(token)
-    if not is_admin:
-        raise HTTPException(
-            status_code=403,
-            detail="Only administrators can update order status"
-        )
-    
-    return await crud.update_order_status(
+    """Update order status"""
+    return crud.update_order_status(
+        db=db,
         order_id=order_id,
         status=status_update.status,
         note=status_update.note
-    )
-
-@app.post("/orders/{order_id}/process-payment", response_model=OrderResponse)
-async def process_payment(
-    order_id: str,
-    token: str = Depends(oauth2_scheme)
-):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    order = await crud.get_order(order_id)
-    if not order:
-        raise HTTPException(
-            status_code=404,
-            detail="Order not found"
-        )
-    
-    if order.user_id != user["id"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to process payment for this order"
-        )
-    
-    return await crud.process_payment(order_id)
-
-@app.post("/orders/{order_id}/refund", response_model=OrderResponse)
-async def refund_order(
-    order_id: str,
-    refund_request: RefundRequest,
-    token: str = Depends(oauth2_scheme)
-):
-    user = await auth.verify_user_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-    
-    # Only allow admin to process refunds
-    is_admin = await auth.verify_admin(token)
-    if not is_admin:
-        raise HTTPException(
-            status_code=403,
-            detail="Only administrators can process refunds"
-        )
-    
-    return await crud.process_refund(
-        order_id=order_id,
-        amount=refund_request.amount,
-        reason=refund_request.reason
     )
