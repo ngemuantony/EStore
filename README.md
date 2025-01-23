@@ -1,15 +1,131 @@
 # EStore - Microservices-based E-Commerce Platform
 
-## Overview
-EStore is a modern, scalable e-commerce platform built using a microservices architecture. The system is designed to handle various aspects of e-commerce operations including user management, inventory control, payment processing, and email verification.
+## Project Context
+This project represents my journey in learning and implementing modern system design principles, DevOps practices, and microservices architecture. After extensive research through technical articles, e-books, tutorials, and system design podcasts, I created this practical implementation to solidify my understanding of large-scale system architecture.
 
-## Architecture
-The application is divided into four main microservices:
+## System Architecture Overview
 
-1. **UserService**: Handles user authentication, registration, and profile management
-2. **InventoryService**: Manages product inventory, categories, and search functionality
-3. **PaymentService**: Processes orders, payments, and manages payment methods
-4. **VerificationService**: Handles email verification and notifications
+### High-Level Design
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   API Gateway   │────▶│  Load Balancer  │────▶│   Service Mesh  │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                                              │
+         ▼                                              ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  UserService    │     │InventoryService │     │ PaymentService  │
+│  Port: 8002     │     │  Port: 8001     │     │  Port: 8000     │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                      │                       │
+         ▼                      ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  User Database  │     │    Inventory    │     │    Payment      │
+│   (PostgreSQL)  │     │    Database     │     │    Database     │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### Microservices Architecture
+The application is built using a microservices architecture with the following core services:
+
+1. **UserService** (Port 8002)
+   - User authentication and authorization
+   - Profile management
+   - Role-based access control
+   - Database: PostgreSQL
+   - Key Features:
+     * JWT-based authentication
+     * Password hashing with bcrypt
+     * Email verification
+     * Session management
+
+2. **InventoryService** (Port 8001)
+   - Product management
+   - Inventory tracking
+   - Category management
+   - Search functionality
+   - Database: PostgreSQL
+   - Key Features:
+     * Real-time stock updates
+     * Product categorization
+     * Advanced search with filters
+     * Price management
+     * Image handling
+
+3. **PaymentService** (Port 8000)
+   - Payment processing
+   - Order management
+   - Payment method handling
+   - Database: PostgreSQL
+   - Key Features:
+     * Multiple payment methods
+     * Order tracking
+     * Refund processing
+     * Payment verification
+     * Duplicate prevention
+
+4. **VerificationService** (Port 8003)
+   - Email verification
+   - Notification handling
+   - Communication management
+   - Database: PostgreSQL
+   - Key Features:
+     * Email verification
+     * Notification templates
+     * Rate limiting
+     * Queue management
+
+### Technical Stack
+
+#### Backend
+- **Framework**: FastAPI
+  * High performance
+  * Automatic API documentation
+  * Modern Python features
+  * Async support
+  
+- **Databases**:
+  * PostgreSQL (Primary data store)
+    - ACID compliance
+    - Complex queries
+    - Data integrity
+    - Transaction support
+  * Redis (Caching)
+    - Session management
+    - Rate limiting
+    - Real-time features
+
+- **Authentication**:
+  * JWT tokens
+  * OAuth2 (planned)
+  * Role-based access
+
+#### Infrastructure
+- **Containerization**: Docker
+- **Orchestration**: Kubernetes (planned)
+- **CI/CD**: GitHub Actions (planned)
+- **Monitoring**: 
+  * Prometheus
+  * Grafana
+  * ELK Stack
+
+### Design Patterns & Principles
+
+1. **Architectural Patterns**
+   - Microservices Architecture
+   - Event-Driven Architecture
+   - Repository Pattern
+   - CQRS (planned)
+
+2. **Design Principles**
+   - SOLID Principles
+   - DRY (Don't Repeat Yourself)
+   - KISS (Keep It Simple, Stupid)
+   - Separation of Concerns
+
+3. **Database Patterns**
+   - Database per Service
+   - Event Sourcing
+   - Saga Pattern for Distributed Transactions
 
 ## Quick Start
 
@@ -29,7 +145,7 @@ SECRET_KEY=your-secret-key
 ALGORITHM=HS256
 ```
 
-### Installation
+### Installation Steps
 1. Clone the repository
 ```bash
 git clone https://github.com/yourusername/estore.git
@@ -59,48 +175,88 @@ uvicorn PaymentService.main:app --reload --port 8000
 uvicorn VerificationService.main:app --reload --port 8003
 ```
 
-## Documentation
+## System Capabilities
 
-For detailed documentation, please refer to the following files in the `docs` directory:
+### Core Features
+1. **User Management**
+   - Registration and authentication
+   - Profile management
+   - Role-based access control
+   - Password recovery
 
-- [Database Schema and Design](docs/database.md)
-- [Features and Capabilities](docs/features.md)
-- [Technologies and Tools](docs/technologies.md)
-- [API Endpoints](docs/endpoints.md)
+2. **Inventory Management**
+   - Product CRUD operations
+   - Category management
+   - Stock tracking
+   - Search and filtering
 
-## Key Features
+3. **Payment Processing**
+   - Multiple payment methods
+   - Order management
+   - Refund processing
+   - Payment verification
 
-### User Management
-- User registration and authentication
-- JWT-based authorization
-- Email verification
-- Role-based access control
-
-### Inventory Management
-- Product CRUD operations
-- Category and tag management
-- Advanced search and filtering
-- Stock tracking and alerts
-- Product analytics
-
-### Payment Processing
-- Multiple payment method support
-- Order management
-- Payment status tracking
-- Refund processing
-- Order analytics
+4. **Communication**
+   - Email verification
+   - Order notifications
+   - System alerts
+   - User communications
 
 ### Security Features
 - JWT authentication
 - Password hashing
-- Email verification
-- Role-based access control
-- Request validation
+- Rate limiting
+- Input validation
+- CORS protection
+- SQL injection prevention
+
+### Scalability Features
+- Horizontal scaling capability
+- Load balancing
+- Caching strategies
+- Database optimization
+- Async operations
+
+## Future Roadmap
+
+### Phase 1: Core Infrastructure
+- [x] Basic microservices setup
+- [x] Database integration
+- [x] API documentation
+- [ ] Service discovery
+
+### Phase 2: Advanced Features
+- [ ] Kubernetes deployment
+- [ ] CI/CD pipeline
+- [ ] Monitoring and logging
+- [ ] Performance optimization
+
+### Phase 3: Production Readiness
+- [ ] Security hardening
+- [ ] Scalability testing
+- [ ] Disaster recovery
+- [ ] Documentation completion
+
+## Learning Resources
+
+### System Design
+- "Designing Data-Intensive Applications" by Martin Kleppmann
+- System Design Primer (GitHub)
+- Tech blogs: Uber, Netflix, Stripe
+
+### DevOps Practices
+- The DevOps Handbook
+- Kubernetes Documentation
+- CI/CD Best Practices
+
+### Microservices
+- "Building Microservices" by Sam Newman
+- Microsoft's Architecture Guides
+- Netflix Tech Blog
 
 ## API Documentation
 
-The API documentation is available at the following endpoints when running the services:
-
+Each service provides its own Swagger documentation:
 - UserService: `http://localhost:8002/docs`
 - InventoryService: `http://localhost:8001/docs`
 - PaymentService: `http://localhost:8000/docs`
@@ -119,9 +275,8 @@ The API documentation is available at the following endpoints when running the s
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
-
 - FastAPI framework
 - PostgreSQL
 - Redis
-- JWT for authentication
-- SQLAlchemy ORM
+- JWT
+- SQLAlchemy

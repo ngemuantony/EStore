@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  user-service:
+    build: ./UserService
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/userdb
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  payment-service:
+    build: ./PaymentService
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/paymentdb
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  inventory-service:
+    build: ./InventoryService
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/inventorydb
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  verification-service:
+    build: ./VerificationService
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/verificationdb
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_MULTIPLE_DATABASES=userdb,paymentdb,inventorydb,verificationdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:

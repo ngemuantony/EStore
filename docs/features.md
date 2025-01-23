@@ -1,193 +1,235 @@
 # Features and Capabilities
 
-## User Management (UserService)
+## Project Overview
+This project represents a comprehensive learning journey in modern system design and microservices architecture. Each feature has been carefully implemented to demonstrate best practices in distributed systems development.
 
-### Authentication and Authorization
-- User registration with email verification
-- JWT-based authentication
-- Role-based access control (Admin/User)
-- Password hashing using bcrypt
-- Token refresh mechanism
+## Core Services
 
-### User Features
-- Profile management
-- Password reset functionality
-- Email verification
-- Account deactivation
-- Admin user management
+### User Management (UserService - Port 8002)
 
-## Inventory Management (InventoryService)
+#### Authentication and Authorization
+- JWT-based authentication with secure token handling
+- Role-based access control (User/Admin)
+- Password hashing with bcrypt
+- Email verification system
 
-### Product Management
-- CRUD operations for products
-- Bulk product import/export
-- Product categorization
-- Product tagging
-- Image management
+#### User Features
+- User registration and profile management
+- Secure password management
+- Account status tracking
+- Admin user management capabilities
+
+### Inventory Management (InventoryService - Port 8001)
+
+#### Product Management
+- Complete CRUD operations for products
+- PostgreSQL-based data persistence
+- Category management system
 - Stock level tracking
-- Discount management
+- Price management in cents
 
-### Search and Filtering
-- Full-text search by product name
-- Category-based filtering
-- Price range filtering
-- Tag-based filtering
-- Stock availability filtering
-- Combined search filters
-
-### Analytics
-- Product view tracking
-- Stock update history
-- Low stock alerts
-- Product performance metrics
-- View count tracking
-
-### Categories and Tags
+#### Data Organization
 - Hierarchical category structure
-- Category CRUD operations
-- Tag management
-- Product-tag associations
-- Category analytics
+- Product metadata using JSONB
+- Efficient database indexing
+- Search and filtering capabilities
 
-## Payment Processing (PaymentService)
+### Payment Processing (PaymentService - Port 8000)
 
-### Payment Methods
+#### Payment Methods
 - Multiple payment method support
-- Secure payment method storage
-- Payment method management
-- Card information validation
-- Default payment method setting
+- Secure payment information storage using JSONB
+- Duplicate payment method prevention
+- Payment method validation
 
-### Order Management
+#### Order Management
 - Order creation and tracking
-- Order status updates
-- Order history
-- Order notes and comments
-- Order analytics
-- Bulk order processing
+- Status management workflow
+- Payment processing integration
+- Order history tracking
 
-### Payment Features
-- Payment processing
-- Payment status tracking
-- Refund processing
-- Partial refunds
-- Payment error handling
-- Transaction logging
+## Technical Implementation
 
-### Pricing and Discounts
-- Dynamic pricing
-- Bulk purchase discounts
-- Coupon system
-- Special offers
-- Tax calculation
-- Shipping fee calculation
-
-## Email Verification (VerificationService)
-
-### Verification Features
-- Email verification tokens
-- Token expiration management
-- Resend verification emails
-- Verification status tracking
-- Email template management
-
-### Notification System
-- Order confirmation emails
-- Payment confirmation
-- Shipping updates
-- Low stock alerts
-- Custom notification preferences
-- Email queue management
-
-## Security Features
-
-### Authentication Security
-- JWT token encryption
-- Password hashing
-- Token refresh mechanism
-- Session management
-- Rate limiting
-
-### Data Security
-- Input validation
-- XSS protection
-- CSRF protection
-- SQL injection prevention
-- Data encryption
-
-### Access Control
-- Role-based permissions
-- Resource ownership validation
-- Admin-only operations
-- API key management
-- IP whitelisting
-
-## Monitoring and Logging
-
-### System Monitoring
-- Service health checks
-- Performance metrics
-- Error tracking
-- Resource usage monitoring
-- API usage statistics
-
-### Logging
-- Request/response logging
-- Error logging
-- Audit logging
-- Performance logging
-- Security event logging
-
-## API Features
+### Database Design
+- PostgreSQL for all services
+- JSONB for flexible data storage
+- Proper indexing strategies
+- Foreign key constraints
+- Timestamp tracking
 
 ### API Design
-- RESTful endpoints
-- OpenAPI documentation
-- API versioning
+- RESTful API principles
+- OpenAPI/Swagger documentation
+- Consistent error handling
 - Rate limiting
-- CORS support
+- Input validation
 
-### Integration
-- Webhook support
-- External API integration
-- Event-driven architecture
-- Message queuing
-- Service discovery
+### Security Measures
+1. **Authentication**
+   - JWT token implementation
+   - Password hashing
+   - Session management
+   - Rate limiting
 
-## Future Enhancements
+2. **Data Protection**
+   - Input sanitization
+   - CORS protection
+   - SQL injection prevention
+   - Sensitive data handling
 
-### Planned Features
-1. **Analytics Dashboard**
-   - Real-time analytics
-   - Sales reports
-   - Inventory reports
-   - User behavior analysis
+3. **Access Control**
+   - Role-based permissions
+   - Resource ownership validation
+   - Endpoint protection
+   - Request validation
+
+### Code Organization
+1. **Service Structure**
+   - Models for database entities
+   - Schemas for request/response validation
+   - CRUD operations in separate modules
+   - Utility functions for common operations
+
+2. **Best Practices**
+   - Dependency injection
+   - Repository pattern
+   - Service layer abstraction
+   - Error handling middleware
+
+## System Design Patterns
+
+### Implemented Patterns
+1. **Microservices Architecture**
+   - Service independence
+   - Database per service
+   - API gateway pattern
+   - Service discovery (planned)
+
+2. **Data Management**
+   - Repository pattern
+   - DTO pattern
+   - CRUD operations
+   - Query optimization
+
+3. **Security Patterns**
+   - Authentication middleware
+   - Authorization decorators
+   - Rate limiting
+   - Input validation
+
+### Planned Patterns
+1. **Resilience Patterns**
+   - Circuit breaker
+   - Retry mechanism
+   - Fallback handlers
+   - Timeout management
+
+2. **Scalability Patterns**
+   - Load balancing
+   - Caching strategies
+   - Database sharding
+   - Message queues
+
+## Monitoring and Observability
+
+### Current Implementation
+1. **Logging**
+   - Request/response logging
+   - Error tracking
+   - Performance monitoring
+   - Security events
+
+2. **API Documentation**
+   - OpenAPI/Swagger UI
+   - Endpoint documentation
+   - Schema documentation
+   - Error response documentation
+
+### Future Enhancements
+1. **Monitoring Tools**
+   - Prometheus integration
+   - Grafana dashboards
+   - ELK stack
+   - APM solutions
+
+2. **Analytics**
+   - User behavior tracking
    - Performance metrics
+   - Error rate monitoring
+   - Business analytics
 
-2. **Advanced Search**
-   - Elasticsearch integration
-   - Faceted search
-   - Recommendation engine
-   - Similar product suggestions
-   - Search analytics
+## DevOps Integration
 
-3. **Payment Enhancements**
-   - Cryptocurrency support
-   - Subscription billing
-   - Payment plans
-   - Advanced fraud detection
-   - Multi-currency support
+### Current Setup
+1. **Version Control**
+   - Git workflow
+   - Feature branching
+   - Pull request reviews
+   - Version tagging
 
-4. **Inventory Optimization**
-   - Automated reordering
-   - Predictive analytics
-   - Supplier management
-   - Warehouse management
-   - Inventory forecasting
+2. **Development Environment**
+   - Virtual environments
+   - Environment variables
+   - Local development setup
+   - Testing environment
 
-5. **User Experience**
-   - Mobile app support
-   - Push notifications
-   - Social media integration
-   - Customer support integration
-   - Personalization
+### Planned Implementation
+1. **CI/CD Pipeline**
+   - Automated testing
+   - Deployment automation
+   - Environment management
+   - Release management
+
+2. **Container Strategy**
+   - Docker containerization
+   - Kubernetes orchestration
+   - Service mesh
+   - Container security
+
+## Learning Outcomes
+
+### Technical Skills
+1. **Backend Development**
+   - FastAPI framework
+   - PostgreSQL database
+   - RESTful API design
+   - Security implementation
+
+2. **System Design**
+   - Microservices architecture
+   - Database design
+   - API design
+   - Security patterns
+
+### Best Practices
+1. **Code Quality**
+   - Clean code principles
+   - Documentation
+   - Testing strategies
+   - Code review process
+
+2. **Architecture**
+   - Service boundaries
+   - Data consistency
+   - Error handling
+   - Performance optimization
+
+## Future Roadmap
+
+### Phase 1: Core Functionality
+- [x] Basic service implementation
+- [x] Database integration
+- [x] API documentation
+- [ ] Authentication system
+
+### Phase 2: Advanced Features
+- [ ] Service discovery
+- [ ] Message queues
+- [ ] Caching layer
+- [ ] Monitoring system
+
+### Phase 3: Production Readiness
+- [ ] Container deployment
+- [ ] CI/CD pipeline
+- [ ] Monitoring and logging
+- [ ] Performance optimization

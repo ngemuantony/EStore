@@ -1,11 +1,11 @@
 # Database Design
 
 ## Overview
-The EStore platform uses a combination of PostgreSQL and Redis databases to handle different aspects of the system. PostgreSQL is used for persistent data storage (users, verification tokens), while Redis is used for high-performance data access (products, orders).
+The EStore platform uses PostgreSQL as its primary database system for all services. This decision was made to ensure data consistency, ACID compliance, and to leverage PostgreSQL's powerful features like JSONB for flexible data storage.
 
 ## Database Schema
 
-### UserService (PostgreSQL)
+### UserService Database (estore_users)
 
 #### Users Table
 ```sql
@@ -16,9 +16,11 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT true,
     is_verified BOOLEAN DEFAULT false,
     is_admin BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE
 );
+
+CREATE INDEX idx_users_email ON users(email);
 ```
 
 #### VerificationTokens Table
@@ -27,136 +29,210 @@ CREATE TABLE verification_tokens (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     token VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    CONSTRAINT fk_user
+        FOREIGN KEY(user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
 );
+
+CREATE INDEX idx_verification_tokens_user ON verification_tokens(user_id);
+CREATE INDEX idx_verification_tokens_token ON verification_tokens(token);
 ```
 
-### InventoryService (Redis)
+### InventoryService Database (estore_inventory)
 
-#### Product Model
-```python
-{
-    "id": str,
-    "name": str,
-    "price": float,
-    "quantity": int,
-    "created_by": int,
-    "category_id": Optional[str],
-    "description": Optional[str],
-    "tags": List[str],
-    "image_url": Optional[str],
-    "min_stock_level": Optional[int],
-    "discount_percentage": Optional[float],
-    "created_at": datetime,
-    "updated_at": Optional[datetime]
-}
+#### Products Table
+```sql
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price INTEGER NOT NULL, -- Stored in cents
+    quantity INTEGER NOT NULL DEFAULT 0,
+    category_id INTEGER,
+    image_url VARCHAR(255),
+    min_stock_level INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    CONSTRAINT fk_category
+        FOREIGN KEY(category_id)
+        REFERENCES categories(id)
+);
+
+CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_products_active ON products(is_active);
+CREATE INDEX idx_products_metadata ON products USING gin (metadata);
 ```
 
-#### Category Model
-```python
-{
-    "id": str,
-    "name": str,
-    "description": Optional[str],
-    "parent_id": Optional[str]
-}
+#### Categories Table
+```sql
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    parent_id INTEGER,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT fk_parent
+        FOREIGN KEY(parent_id)
+        REFERENCES categories(id)
+);
+
+CREATE INDEX idx_categories_parent ON categories(parent_id);
 ```
 
-#### ProductAnalytics Model
-```python
-{
-    "product_id": str,
-    "views": int,
-    "last_viewed": Optional[datetime],
-    "stock_updates": int,
-    "last_stock_update": Optional[datetime]
-}
+### PaymentService Database (estore_payments)
+
+#### PaymentMethods Table
+```sql
+CREATE TABLE payment_methods (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR NOT NULL,
+    payment_type VARCHAR NOT NULL,
+    details JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_payment_methods_user ON payment_methods(user_id);
+CREATE INDEX idx_payment_methods_active ON payment_methods(is_active);
+CREATE INDEX idx_payment_methods_details ON payment_methods USING gin (details);
 ```
 
-### PaymentService (Redis)
+#### Orders Table
+```sql
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR NOT NULL,
+    product_id VARCHAR NOT NULL,
+    quantity INTEGER NOT NULL,
+    total_amount INTEGER NOT NULL, -- Stored in cents
+    status VARCHAR NOT NULL DEFAULT 'pending',
+    payment_method_id INTEGER REFERENCES payment_methods(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    CONSTRAINT fk_payment_method
+        FOREIGN KEY(payment_method_id)
+        REFERENCES payment_methods(id)
+);
 
-#### Order Model
-```python
-{
-    "id": str,
-    "product_id": str,
-    "user_id": int,
-    "quantity": int,
-    "price": float,
-    "fee": float,
-    "total": float,
-    "status": str,
-    "payment_method_id": Optional[str],
-    "created_at": datetime,
-    "updated_at": Optional[datetime],
-    "notes": List[str],
-    "refund_amount": Optional[float],
-    "payment_status": str,
-    "payment_error": Optional[str]
-}
+CREATE INDEX idx_orders_user ON orders(user_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_metadata ON orders USING gin (metadata);
 ```
 
-#### PaymentMethod Model
-```python
-{
-    "id": str,
-    "user_id": int,
-    "type": str,
-    "details": Dict,
-    "created_at": datetime
-}
-```
+## Database Design Principles
 
-## Database Choice Rationale
+### 1. Data Integrity
+- Foreign key constraints for referential integrity
+- NOT NULL constraints where appropriate
+- CHECK constraints for data validation
+- UNIQUE constraints for preventing duplicates
 
-### PostgreSQL
-- Used for UserService due to:
-  - ACID compliance for critical user data
-  - Complex querying capabilities
-  - Strong data consistency
-  - Built-in support for relationships
-  - Robust security features
+### 2. Performance Optimization
+- Strategic indexing on frequently queried columns
+- JSONB indices for flexible querying
+- Proper data types for efficient storage
+- Timestamp with time zone for temporal data
 
-### Redis
-- Used for InventoryService and PaymentService due to:
-  - High-performance read/write operations
-  - In-memory data storage for fast access
-  - Support for complex data structures
-  - Built-in expiration functionality
-  - Pub/Sub capabilities for real-time updates
+### 3. Scalability Considerations
+- Partitioning ready for large tables
+- Efficient indexing strategy
+- Normalized structure to prevent redundancy
+- JSONB for flexible schema evolution
 
 ## Backup and Recovery
 
-### PostgreSQL Backup
+### Automated Backup Strategy
 ```bash
-# Daily backup
-pg_dump -U postgres estore_users > backup_users_$(date +%Y%m%d).sql
+# Daily backup script (backup.sh)
+#!/bin/bash
+BACKUP_DIR="/path/to/backups"
+DATE=$(date +%Y%m%d)
+
+# Backup each database
+for DB in estore_users estore_inventory estore_payments; do
+    pg_dump -Fc -U postgres $DB > "$BACKUP_DIR/${DB}_${DATE}.dump"
+done
+
+# Keep last 30 days of backups
+find $BACKUP_DIR -type f -mtime +30 -delete
 ```
 
-### Redis Backup
-Redis persistence is configured using both RDB and AOF:
-```conf
-# RDB Snapshot
-save 900 1
-save 300 10
-save 60 10000
-
-# AOF Configuration
-appendonly yes
-appendfsync everysec
+### Recovery Process
+```bash
+# Restore a database
+pg_restore -U postgres -d database_name backup_file.dump
 ```
 
-## Scaling Considerations
+## Monitoring and Maintenance
 
-### PostgreSQL
-- Implement connection pooling
-- Use read replicas for scaling reads
-- Partition large tables
-- Regular index optimization
+### Key Metrics to Monitor
+1. Query Performance
+   - Slow query log analysis
+   - Index usage statistics
+   - Buffer cache hit ratio
 
-### Redis
-- Redis Cluster for horizontal scaling
-- Redis Sentinel for high availability
-- Implement proper key expiration policies
-- Use Redis Enterprise for advanced features
+2. Database Size
+   - Table sizes
+   - Index sizes
+   - TOAST table usage
+
+3. Connection Stats
+   - Active connections
+   - Connection duration
+   - Connection errors
+
+### Regular Maintenance Tasks
+```sql
+-- Regular VACUUM ANALYZE
+VACUUM ANALYZE;
+
+-- Update table statistics
+ANALYZE tablename;
+
+-- Rebuild indices
+REINDEX TABLE tablename;
+```
+
+## Security Measures
+
+1. **Access Control**
+   - Role-based access
+   - Row-level security policies
+   - SSL connections
+
+2. **Data Protection**
+   - Encrypted passwords
+   - Sensitive data in JSONB fields
+   - Audit logging
+
+3. **Backup Security**
+   - Encrypted backups
+   - Secure backup transfer
+   - Regular backup testing
+
+## Migration Strategy
+
+### Version Control
+- All schema changes are version controlled
+- Use of migration tools (Alembic)
+- Rollback procedures documented
+
+### Example Migration
+```python
+# alembic/versions/xxxx_add_payment_status.py
+def upgrade():
+    op.add_column('orders', sa.Column('payment_status', sa.String()))
+    op.create_index('idx_orders_payment_status', 'orders', ['payment_status'])
+
+def downgrade():
+    op.drop_index('idx_orders_payment_status')
+    op.drop_column('orders', 'payment_status')

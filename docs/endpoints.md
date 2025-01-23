@@ -1,55 +1,80 @@
 # API Endpoints Documentation
 
+## Overview
+This document details all the API endpoints available in the EStore microservices ecosystem. Each service runs on its own port and provides a specific set of functionalities.
+
+## Authentication
+All protected endpoints require a JWT token in the Authorization header:
+```http
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+```
+
 ## UserService (Port 8002)
 
 ### Authentication Endpoints
 ```http
 POST /register
+Description: Register a new user
+Request:
 {
     "email": "string",
     "password": "string"
 }
+Response: 201 Created
+{
+    "id": "integer",
+    "email": "string",
+    "is_active": "boolean",
+    "is_verified": "boolean"
+}
 
 POST /token
+Description: Get access token
+Request:
 {
     "username": "string",
     "password": "string"
 }
-
-POST /refresh-token
+Response: 200 OK
 {
-    "refresh_token": "string"
+    "access_token": "string",
+    "token_type": "bearer"
+}
+
+POST /verify/{token}
+Description: Verify email address
+Response: 200 OK
+{
+    "message": "Email verified successfully"
 }
 ```
 
 ### User Management
 ```http
 GET /users/me
-Authorization: Bearer {token}
+Description: Get current user profile
+Response: 200 OK
+{
+    "id": "integer",
+    "email": "string",
+    "is_active": "boolean",
+    "is_verified": "boolean"
+}
 
 PUT /users/me
-Authorization: Bearer {token}
+Description: Update current user
+Request:
 {
     "email": "string",
     "password": "string"
 }
-
-POST /users/verify/{token}
-
-POST /users/resend-verification
-Authorization: Bearer {token}
-```
-
-### Admin Endpoints
-```http
-GET /users
-Authorization: Bearer {token}
-
-GET /users/{user_id}
-Authorization: Bearer {token}
-
-DELETE /users/{user_id}
-Authorization: Bearer {token}
+Response: 200 OK
+{
+    "id": "integer",
+    "email": "string",
+    "is_active": "boolean",
+    "is_verified": "boolean"
+}
 ```
 
 ## InventoryService (Port 8001)
@@ -57,66 +82,93 @@ Authorization: Bearer {token}
 ### Product Management
 ```http
 GET /products
-Authorization: Bearer {token}
+Description: List all products
 Query Parameters:
-- name: string
-- category_id: string
-- min_price: float
-- max_price: float
-- tags: List[string]
+- category_id: integer
+- min_price: integer (in cents)
+- max_price: integer (in cents)
 - in_stock: boolean
+Response: 200 OK
+[
+    {
+        "id": "integer",
+        "name": "string",
+        "price": "integer",
+        "quantity": "integer",
+        "category_id": "integer",
+        "description": "string",
+        "image_url": "string",
+        "is_active": "boolean"
+    }
+]
 
 POST /products
-Authorization: Bearer {token}
+Description: Create a new product
+Request:
 {
     "name": "string",
-    "price": float,
-    "quantity": int,
-    "category_id": "string",
+    "price": "integer",
+    "quantity": "integer",
+    "category_id": "integer",
     "description": "string",
-    "tags": ["string"],
+    "image_url": "string"
+}
+Response: 201 Created
+{
+    "id": "integer",
+    "name": "string",
+    "price": "integer",
+    "quantity": "integer",
+    "category_id": "integer",
+    "description": "string",
     "image_url": "string",
-    "min_stock_level": int,
-    "discount_percentage": float
+    "is_active": "boolean"
 }
 
 GET /products/{product_id}
-Authorization: Bearer {token}
-
-DELETE /products/{product_id}
-Authorization: Bearer {token}
-
-PATCH /products/{product_id}/quantity
-Authorization: Bearer {token}
+Description: Get product details
+Response: 200 OK
 {
-    "quantity": int
+    "id": "integer",
+    "name": "string",
+    "price": "integer",
+    "quantity": "integer",
+    "category_id": "integer",
+    "description": "string",
+    "image_url": "string",
+    "is_active": "boolean"
 }
 ```
 
 ### Category Management
 ```http
+GET /categories
+Description: List all categories
+Response: 200 OK
+[
+    {
+        "id": "integer",
+        "name": "string",
+        "description": "string",
+        "parent_id": "integer"
+    }
+]
+
 POST /categories
-Authorization: Bearer {token}
+Description: Create a new category
+Request:
 {
     "name": "string",
     "description": "string",
-    "parent_id": "string"
+    "parent_id": "integer"
 }
-
-GET /categories
-Authorization: Bearer {token}
-```
-
-### Tag Management
-```http
-POST /tags
-Authorization: Bearer {token}
+Response: 201 Created
 {
-    "name": "string"
+    "id": "integer",
+    "name": "string",
+    "description": "string",
+    "parent_id": "integer"
 }
-
-GET /tags
-Authorization: Bearer {token}
 ```
 
 ## PaymentService (Port 8000)
@@ -124,157 +176,179 @@ Authorization: Bearer {token}
 ### Payment Methods
 ```http
 POST /payment-methods
-Authorization: Bearer {token}
+Description: Create a new payment method
+Request:
 {
-    "type": "string",
+    "payment_type": "string",
     "details": {
-        "key": "value"
+        "card_number": "string",
+        "expiry_month": "integer",
+        "expiry_year": "integer",
+        "cvv": "string"
     }
+}
+Response: 201 Created
+{
+    "id": "integer",
+    "user_id": "string",
+    "payment_type": "string",
+    "details": "object",
+    "is_active": "boolean"
 }
 
 GET /payment-methods
-Authorization: Bearer {token}
+Description: List user's payment methods
+Response: 200 OK
+[
+    {
+        "id": "integer",
+        "user_id": "string",
+        "payment_type": "string",
+        "details": "object",
+        "is_active": "boolean"
+    }
+]
 
 DELETE /payment-methods/{payment_method_id}
-Authorization: Bearer {token}
+Description: Delete a payment method
+Response: 200 OK
+{
+    "id": "integer",
+    "user_id": "string",
+    "payment_type": "string",
+    "details": "object",
+    "is_active": "boolean"
+}
 ```
 
 ### Order Management
 ```http
 POST /orders
-Authorization: Bearer {token}
+Description: Create a new order
+Request:
 {
-    "id": "string",
-    "quantity": int,
-    "payment_method_id": "string"
+    "product_id": "string",
+    "quantity": "integer",
+    "payment_method_id": "integer"
+}
+Response: 201 Created
+{
+    "id": "integer",
+    "user_id": "string",
+    "product_id": "string",
+    "quantity": "integer",
+    "total_amount": "integer",
+    "status": "string",
+    "payment_method_id": "integer"
 }
 
 GET /orders
-Authorization: Bearer {token}
+Description: List user's orders
+Response: 200 OK
+[
+    {
+        "id": "integer",
+        "user_id": "string",
+        "product_id": "string",
+        "quantity": "integer",
+        "total_amount": "integer",
+        "status": "string",
+        "payment_method_id": "integer"
+    }
+]
 
 GET /orders/{order_id}
-Authorization: Bearer {token}
+Description: Get order details
+Response: 200 OK
+{
+    "id": "integer",
+    "user_id": "string",
+    "product_id": "string",
+    "quantity": "integer",
+    "total_amount": "integer",
+    "status": "string",
+    "payment_method_id": "integer"
+}
 
-PATCH /orders/{order_id}/status
-Authorization: Bearer {token}
+PUT /orders/{order_id}/status
+Description: Update order status
+Request:
 {
     "status": "string",
     "note": "string"
 }
-
-POST /orders/{order_id}/process-payment
-Authorization: Bearer {token}
-
-POST /orders/{order_id}/refund
-Authorization: Bearer {token}
+Response: 200 OK
 {
-    "amount": float,
-    "reason": "string"
-}
-```
-
-## VerificationService (Port 8003)
-
-### Email Verification
-```http
-POST /verify
-{
-    "token": "string"
-}
-
-POST /resend
-{
-    "email": "string"
-}
-```
-
-### Notification Endpoints
-```http
-POST /notify/order-confirmation
-{
-    "order_id": "string",
-    "user_email": "string"
-}
-
-POST /notify/payment-confirmation
-{
-    "order_id": "string",
-    "user_email": "string"
-}
-
-POST /notify/low-stock
-{
+    "id": "integer",
+    "user_id": "string",
     "product_id": "string",
-    "quantity": int,
-    "admin_email": "string"
+    "quantity": "integer",
+    "total_amount": "integer",
+    "status": "string",
+    "payment_method_id": "integer"
 }
 ```
 
-## Common Response Formats
+## Error Responses
 
-### Success Response
+All endpoints may return the following error responses:
+
+### 400 Bad Request
 ```json
 {
-    "status": "success",
-    "data": {
-        // Response data
-    }
+    "detail": "Error message explaining what went wrong"
 }
 ```
 
-### Error Response
+### 401 Unauthorized
 ```json
 {
-    "status": "error",
-    "detail": "Error message"
+    "detail": "Not authenticated"
 }
 ```
 
-### Validation Error
+### 403 Forbidden
 ```json
 {
-    "status": "error",
-    "detail": {
-        "loc": ["field_name"],
-        "msg": "Error message",
-        "type": "validation_error"
-    }
+    "detail": "Not enough privileges"
 }
 ```
 
-## Authentication
+### 404 Not Found
+```json
+{
+    "detail": "Resource not found"
+}
+```
 
-All protected endpoints require a valid JWT token in the Authorization header:
-```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+### 422 Validation Error
+```json
+{
+    "detail": [
+        {
+            "loc": ["body", "field_name"],
+            "msg": "field validation error",
+            "type": "value_error"
+        }
+    ]
+}
+```
+
+### 500 Internal Server Error
+```json
+{
+    "detail": "Internal server error"
+}
 ```
 
 ## Rate Limiting
 
-- Anonymous requests: 100 requests per hour
-- Authenticated requests: 1000 requests per hour
-- Admin requests: 5000 requests per hour
+All endpoints are subject to rate limiting:
+- 100 requests per minute for authenticated users
+- 20 requests per minute for unauthenticated users
 
-## Pagination
-
-For endpoints that return lists, use the following query parameters:
+Rate limit headers are included in all responses:
 ```http
-GET /endpoint?skip=0&limit=10
-```
-
-## Filtering and Sorting
-
-For endpoints that support filtering:
-```http
-GET /endpoint?field=value&sort=field&order=asc
-```
-
-## Error Codes
-
-- 400: Bad Request
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 422: Validation Error
-- 429: Too Many Requests
-- 500: Internal Server Error
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-RateLimit-Reset: 1640995200

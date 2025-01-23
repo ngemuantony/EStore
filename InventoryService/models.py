@@ -32,7 +32,7 @@ class Product(HashModel):
     price: float = Field(index=True)
     quantity: int = Field(index=True)
     created_by: int
-    category_id: Optional[str] = Field(index=True)
+    category_id: Optional[str] = Field(index=True, default=None)
     description: Optional[str] = None
     tag_ids: str = Field(index=True, default="")  # Store as comma-separated string
     image_url: Optional[str] = None
