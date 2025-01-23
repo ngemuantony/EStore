@@ -3,8 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 import os
+import sys
 
-from database import get_db, Base, engine
+# Add parent directory to path to import utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.database import wait_for_db
+
+from database import get_db, Base, engine, SessionLocal
 from schemas import (
     PaymentMethodCreate, PaymentMethodResponse,
     OrderCreate, OrderResponse,
@@ -12,7 +17,8 @@ from schemas import (
 )
 import crud
 
-# Create database tables
+# Wait for database to be ready before creating tables
+engine = wait_for_db(os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/paymentdb"))
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(

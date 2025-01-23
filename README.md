@@ -280,3 +280,118 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Redis
 - JWT
 - SQLAlchemy
+
+# E-Store Microservices
+
+A modern e-commerce platform built with microservices architecture using FastAPI and Docker.
+
+## Services
+
+### User Service
+- Handles user authentication and management
+- Port: 8000
+- Database: PostgreSQL (userdb)
+
+### Payment Service
+- Manages payment processing and transactions
+- Port: 8001
+- Database: PostgreSQL (paymentdb)
+
+### Inventory Service
+- Manages product inventory and stock levels
+- Port: 8002
+- Database: Redis
+- Features:
+  - Real-time inventory tracking
+  - Product categorization
+  - Stock level management
+
+### Verification Service
+- Handles verification and validation processes
+- Port: 8003
+- Database: PostgreSQL (verificationdb)
+
+## Database Architecture
+
+The platform uses a polyglot persistence approach:
+
+- **PostgreSQL**: Used by User, Payment, and Verification services for persistent data storage
+  - Connection managed through SQLAlchemy
+  - Automatic retry mechanism for reliability
+  - Environment variables for configuration:
+    - `DATABASE_URL`: Connection string for PostgreSQL
+    - `MAX_DB_RETRIES`: Maximum connection attempts (default: 5)
+    - `DB_RETRY_INTERVAL`: Seconds between retries (default: 5)
+
+- **Redis**: Used by Inventory Service for fast, real-time operations
+  - Connection managed through redis-om
+  - Environment variables for configuration:
+    - `REDIS_HOST`: Redis server hostname
+    - `REDIS_PORT`: Redis server port
+    - `REDIS_PASSWORD`: Authentication password
+
+## Setup and Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd EStore
+```
+
+2. Create `.env` files for each service in their respective directories:
+```
+UserService/.env
+PaymentService/.env
+InventoryService/.env
+VerificationService/.env
+```
+
+3. Configure environment variables in each `.env` file:
+
+For services using PostgreSQL:
+```env
+DATABASE_URL=postgresql://postgres:postgres@db:5432/[service-specific-db]
+MAX_DB_RETRIES=10
+DB_RETRY_INTERVAL=5
+```
+
+For Inventory Service:
+```env
+REDIS_HOST=your-redis-host
+REDIS_PORT=your-redis-port
+REDIS_PASSWORD=your-redis-password
+```
+
+4. Build and run the services:
+```bash
+docker-compose up --build
+```
+
+## API Documentation
+
+Once the services are running, you can access their Swagger documentation:
+
+- User Service: http://localhost:8000/docs
+- Payment Service: http://localhost:8001/docs
+- Inventory Service: http://localhost:8002/docs
+- Verification Service: http://localhost:8003/docs
+
+## Development
+
+### Database Connections
+The platform uses a robust database connection handler (`utils/database.py`) that:
+- Supports both Redis and PostgreSQL
+- Implements retry logic for reliability
+- Uses environment variables for configuration
+- Provides detailed logging
+- Conditionally imports dependencies based on the database type
+
+### Adding New Services
+1. Create a new directory for your service
+2. Copy the base Dockerfile structure
+3. Add service configuration to docker-compose.yml
+4. Create a .env file for service-specific configuration
+5. Implement the service using FastAPI
+
+## Contributing
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.

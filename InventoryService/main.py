@@ -15,6 +15,8 @@ from schemas import (
 from typing import List, Optional
 from redis_om import get_redis_connection, HashModel
 import requests
+import sys
+from utils.database import wait_for_db
 
 # Load environment variables
 load_dotenv()
@@ -23,7 +25,7 @@ load_dotenv()
 USER_SERVICE_URL = "http://localhost:8002"
 
 # FastAPI app initialization
-app = FastAPI()
+app = FastAPI(title="Inventory Service")
 
 # OAuth2 scheme for token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{USER_SERVICE_URL}/token")
@@ -37,11 +39,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Redis connection
+# Redis connection using redis-om
 redis = get_redis_connection(
-    host=os.getenv("REDIS_HOST"),
-    port=int(os.getenv("REDIS_PORT")),
-    password=os.getenv("REDIS_PASSWORD"),
+    host=os.getenv("REDIS_HOST", "localhost"),
+    port=int(os.getenv("REDIS_PORT", "6379")),
+    password=os.getenv("REDIS_PASSWORD", ""),
     decode_responses=True
 )
 

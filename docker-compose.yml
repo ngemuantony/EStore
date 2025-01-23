@@ -1,49 +1,67 @@
-version: '3.8'
-
 services:
   user-service:
-    build: ./UserService
+    build:
+      context: .
+      dockerfile: ./UserService/Dockerfile
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/userdb
+      - MAX_DB_RETRIES=10
+      - DB_RETRY_INTERVAL=5
     depends_on:
       db:
         condition: service_healthy
-    restart: always
+    restart: on-failure:3
+    env_file:
+      - ./UserService/.env
 
   payment-service:
-    build: ./PaymentService
+    build:
+      context: .
+      dockerfile: ./PaymentService/Dockerfile
     ports:
       - "8001:8001"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/paymentdb
+      - MAX_DB_RETRIES=10
+      - DB_RETRY_INTERVAL=5
     depends_on:
       db:
         condition: service_healthy
-    restart: always
+    restart: on-failure:3
+    env_file:
+      - ./PaymentService/.env
 
   inventory-service:
-    build: ./InventoryService
+    build:
+      context: .
+      dockerfile: ./InventoryService/Dockerfile
     ports:
       - "8002:8002"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/inventorydb
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: always
+      - REDIS_HOST=redis-16381.c341.af-south-1-1.ec2.redns.redis-cloud.com
+      - REDIS_PORT=16381
+    env_file:
+      - ./InventoryService/.env
+    restart: on-failure:3
 
   verification-service:
-    build: ./VerificationService
+    build:
+      context: .
+      dockerfile: ./VerificationService/Dockerfile
     ports:
       - "8003:8003"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/verificationdb
+      - MAX_DB_RETRIES=10
+      - DB_RETRY_INTERVAL=5
     depends_on:
       db:
         condition: service_healthy
-    restart: always
+    restart: on-failure:3
+    env_file:
+      - ./VerificationService/.env
 
   db:
     image: postgres:15
@@ -56,11 +74,13 @@ services:
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     ports:
       - "5432:5432"
+    command: postgres -c 'max_connections=200'
 
 volumes:
   postgres_data:
