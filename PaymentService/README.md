@@ -1,13 +1,44 @@
-# Payment Service
+# EStore Payment Service
 
-A microservice for handling payment methods and orders in the EStore application.
+## Project Overview
+
+This project is part of my journey to deepen my understanding of DevOps practices and System Design principles. After extensive research through various resources including technical articles, e-books, tutorials, and system design podcasts, I decided to create this practical implementation to solidify my knowledge.
+
+The Payment Service is a crucial microservice within the EStore ecosystem, designed to handle payment processing with a focus on scalability, reliability, and security.
+
+## System Design & Architecture
+
+### Microservices Architecture
+The Payment Service is part of a larger microservices architecture, where each service is:
+- Independently deployable
+- Loosely coupled
+- Highly cohesive
+- Owns its own data store
+
+### Technical Stack
+- **Framework**: FastAPI - chosen for its high performance, automatic API documentation, and modern Python features
+- **Database**: PostgreSQL - selected for:
+  - ACID compliance
+  - Complex query support (especially JSONB for flexible payment details)
+  - Data integrity and reliability
+  - Robust transaction support
+- **API Design**: RESTful principles with clear resource naming and HTTP method usage
+- **Authentication**: JWT-based authentication (planned)
+- **Documentation**: OpenAPI (Swagger) specification
+
+### Design Patterns & Best Practices
+- **Repository Pattern**: Separation of data access logic (crud.py)
+- **DTO Pattern**: Clear separation of API models (schemas.py) from database models (models.py)
+- **Dependency Injection**: For database sessions and future authentication
+- **SOLID Principles**: Emphasis on Single Responsibility and Interface Segregation
 
 ## Features
 
 - Payment Method Management (CRUD operations)
 - Order Processing
 - PostgreSQL Database Integration
-- JWT Authentication
+- Duplicate Payment Method Prevention
+- JWT Authentication (planned)
 
 ## Prerequisites
 
@@ -15,9 +46,9 @@ A microservice for handling payment methods and orders in the EStore application
 - PostgreSQL
 - Virtual Environment (recommended)
 
-## Environment Variables
+## Environment Setup
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory with:
 
 ```env
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/estore_payments
@@ -49,11 +80,13 @@ CREATE DATABASE estore_payments;
 uvicorn main:app --reload --port 8000
 ```
 
-## API Endpoints
+## API Documentation
 
 ### Payment Methods
 
 - `POST /payment-methods`: Create a new payment method
+  - Implements duplicate detection for card numbers
+  - Validates payment method details
 - `GET /payment-methods`: List all payment methods for a user
 - `GET /payment-methods/{id}`: Get a specific payment method
 - `DELETE /payment-methods/{id}`: Delete a payment method
@@ -95,6 +128,47 @@ CREATE TABLE orders (
 );
 ```
 
+## Future Enhancements
+
+1. **Security Improvements**
+   - Implement rate limiting
+   - Add request validation middleware
+   - Enhanced error handling
+
+2. **Monitoring & Observability**
+   - Prometheus metrics integration
+   - Grafana dashboards
+   - Distributed tracing
+
+3. **Infrastructure**
+   - Docker containerization
+   - Kubernetes deployment
+   - CI/CD pipeline with GitHub Actions
+
+4. **Payment Gateway Integration**
+   - Stripe integration
+   - PayPal integration
+   - Support for multiple payment providers
+
+## Learning Resources
+
+Some valuable resources that influenced this project's design:
+
+1. **System Design**
+   - "Designing Data-Intensive Applications" by Martin Kleppmann
+   - System Design Primer (GitHub)
+   - Various tech blog posts from companies like Uber, Netflix, and Stripe
+
+2. **DevOps Practices**
+   - The DevOps Handbook
+   - Container and Kubernetes documentation
+   - CI/CD best practices
+
+3. **Microservices Architecture**
+   - "Building Microservices" by Sam Newman
+   - Microsoft's microservices architecture documentation
+   - Netflix's tech blog
+
 ## Error Handling
 
 The service implements standard HTTP status codes:
@@ -104,3 +178,7 @@ The service implements standard HTTP status codes:
 - 403: Forbidden
 - 404: Not Found
 - 500: Internal Server Error
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
